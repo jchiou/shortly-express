@@ -2,6 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var bcrypt = require('bcrypt-nodejs');
 
 
 var db = require('./app/config');
@@ -71,6 +72,49 @@ function(req, res) {
     }
   });
 });
+
+app.post('/signup',
+  function(req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
+
+    new User({username: username}).fetch().then(function(found) {
+      if (found) {
+        // Render on signup html that "user already exists!"
+        res.redirect('signup');
+      } else {
+        Users.create({
+          username: username,
+          password: password
+        })
+        .then(function(newUser) {
+          res.redirect('/');
+        });
+      }
+    });
+  });
+
+app.post('/login',
+  function(req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
+
+    new User({username: username}).fetch().then(function(found) {
+      
+
+      if (found) {
+        var hash = bcrypt.hashSync(password, found.attributes.salt);
+        if (hash === found.attributes.password) {
+          res.redirect('/');
+        } else {
+          res.redirect('/login'); // render with 'wrong user/pw'
+        }
+      } else {        
+        res.redirect('/login'); // render with 'wrong user/pw'
+
+      }
+    });
+  });
 
 /************************************************************/
 // Write your authentication routes here
