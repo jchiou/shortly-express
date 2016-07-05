@@ -101,18 +101,28 @@ app.post('/login',
 
     new User({username: username}).fetch().then(function(found) {
       
-
       if (found) {
-        var hash = bcrypt.hashSync(password, found.attributes.salt);
-        if (hash === found.attributes.password) {
-          res.redirect('/');
-        } else {
-          res.redirect('/login'); // render with 'wrong user/pw'
-        }
-      } else {        
-        res.redirect('/login'); // render with 'wrong user/pw'
-
+        bcrypt.compare(password, found.attributes.password, function(err, match) {
+          if (match) {
+            res.redirect('/');
+          } else {
+            res.redirect('/login'); //redner w/ wrong user pw combo
+          }
+        });
+      } else {
+        res.redirect('/login');
       }
+      // if (found) {
+      //   var hash = bcrypt.hashSync(password, found.attributes.salt);
+      //   if (hash === found.attributes.password) {
+      //     res.redirect('/');
+      //   } else {
+      //     res.redirect('/login'); // render with 'wrong user/pw'
+      //   }
+      // } else {        
+      //   res.redirect('/login'); // render with 'wrong user/pw'
+
+      
     });
   });
 
