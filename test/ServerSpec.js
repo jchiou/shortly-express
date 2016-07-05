@@ -290,6 +290,7 @@ describe('', function() {
   describe('Account Login:', function() {
 
     var requestWithSession = request.defaults({jar: true});
+
     beforeEach(function(done) {
       new User({
         'username': 'Phillip',

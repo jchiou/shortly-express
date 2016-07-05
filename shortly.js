@@ -3,7 +3,9 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var bcrypt = require('bcrypt-nodejs');
-
+// var cookieParser = require('cookie-parser');
+var session = require('express-session');
+var morgan = require('morgan');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -16,17 +18,26 @@ var app = express();
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
+app.use(morgan('dev'));
 app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(cookieParser());
+app.use(session({
+  secret: 'keyboard cat',
+  cookie: { secure: true },
+  resave: false,
+  saveUninitialized: true
+}));
 app.use(express.static(__dirname + '/public'));
-
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  util.isLoggedIn(req, res, function() {
+    res.render('index');
+  });
 });
 
 app.get('/create', 
@@ -85,9 +96,11 @@ app.post('/signup',
       } else {
         Users.create({
           username: username,
-          password: password
+          password: password,
         })
         .then(function(newUser) {
+          newUser.set('sessionId', req.session.id);
+          util.setCookieHelper(newUser, res);
           res.redirect('/');
         });
       }
@@ -104,6 +117,8 @@ app.post('/login',
       if (found) {
         bcrypt.compare(password, found.attributes.password, function(err, match) {
           if (match) {
+            found.set('sessionId', req.session.id);
+            util.setCookieHelper(found, res);            
             res.redirect('/');
           } else {
             res.redirect('/login'); //redner w/ wrong user pw combo
@@ -130,6 +145,9 @@ app.post('/login',
 // Write your authentication routes here
 /************************************************************/
 
+app.get('/login', function(req, res) {
+  res.render('login');
+});
 
 
 /************************************************************/
