@@ -30,9 +30,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
   secret: 'keyboard cat',
-  // cookie: { secure: true },
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  maxAge: Date.now() + (30 * 86400 * 1000)
 }));
 app.use(express.static(__dirname + '/public'));
 
@@ -62,6 +62,11 @@ function(req, res) {
 app.post('/links', 
 function(req, res) {
   var uri = req.body.url;
+
+  // append http:// to beginning of uri
+  if (!uri.match(/^http:\/\//)) {
+    uri = 'http://' + uri;
+  }
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
