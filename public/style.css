@@ -135,3 +135,12 @@ form input[type=text], form input[type=password] {
 .creator .message {
   clear: both;
 }
+
+.signup, .login, .logout {
+  float: right;
+  display: inline-block;
+}
+
+.h1 {
+  display: inline-block;
+}

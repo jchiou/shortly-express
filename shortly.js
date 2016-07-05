@@ -3,9 +3,9 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var bcrypt = require('bcrypt-nodejs');
-// var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var morgan = require('morgan');
+// var cookieParser = require('cookie-parser');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -20,14 +20,17 @@ app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 app.use(morgan('dev'));
 app.use(partials());
+
+// app.use(cookieParser());
+
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(cookieParser());
+
 app.use(session({
   secret: 'keyboard cat',
-  cookie: { secure: true },
+  // cookie: { secure: true },
   resave: false,
   saveUninitialized: true
 }));
@@ -42,14 +45,18 @@ function(req, res) {
 
 app.get('/create', 
 function(req, res) {
-  res.render('index');
+  util.isLoggedIn(req, res, function() {
+    res.render('index');
+  });
 });
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.status(200).send(links.models);
-  });
+  util.isLoggedIn(req, res, function() {
+    Links.reset().fetch().then(function(links) {
+      res.status(200).send(links.models);
+    });
+  }); 
 });
 
 app.post('/links', 
@@ -91,7 +98,7 @@ app.post('/signup',
 
     new User({username: username}).fetch().then(function(found) {
       if (found) {
-        // Render on signup html that "user already exists!"
+        alert('That Username already exists!');
         res.redirect('signup');
       } else {
         Users.create({
@@ -113,31 +120,21 @@ app.post('/login',
     var password = req.body.password;
 
     new User({username: username}).fetch().then(function(found) {
-      
       if (found) {
         bcrypt.compare(password, found.attributes.password, function(err, match) {
           if (match) {
-            found.set('sessionId', req.session.id);
+            found.set({'sessionId': req.session.id}).save();
+            console.log('sessionId on user set to: ', found.get('sessionId'));
             util.setCookieHelper(found, res);            
             res.redirect('/');
           } else {
-            res.redirect('/login'); //redner w/ wrong user pw combo
+            alert('wrong username or password!');
+            res.redirect('/login'); 
           }
         });
       } else {
         res.redirect('/login');
       }
-      // if (found) {
-      //   var hash = bcrypt.hashSync(password, found.attributes.salt);
-      //   if (hash === found.attributes.password) {
-      //     res.redirect('/');
-      //   } else {
-      //     res.redirect('/login'); // render with 'wrong user/pw'
-      //   }
-      // } else {        
-      //   res.redirect('/login'); // render with 'wrong user/pw'
-
-      
     });
   });
 
@@ -149,6 +146,19 @@ app.get('/login', function(req, res) {
   res.render('login');
 });
 
+app.get('/signup', function(req, res) {
+  res.render('signup');
+});
+
+app.get('/logout', function(req, res) {
+  res.clearCookie('cookie');
+  req.session.destroy(function(err) {
+    if (err) {
+      throw err;
+    }
+    res.redirect('/login');
+  });
+});
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
